@@ -56,6 +56,15 @@ class Plan(BaseModel):
     metrics: Dict[str, object] = {}
     explain: List[str] = []
 
+
+class OptimizeResponse(BaseModel):
+    changes: List[Dict[str, object]]
+    metrics: Dict[str, object]
+
+
+class ExplainResponse(BaseModel):
+    explain: List[str]
+
 # ----- App -----
 
 app = FastAPI(title="Alto Agents")
@@ -214,6 +223,19 @@ def orchestrate_plan(payload: RequestPayload):
         metrics=out["metrics"],
         explain=out["explain"]
     )
+
+
+@app.post("/optimize", response_model=OptimizeResponse)
+def optimize(payload: RequestPayload):
+    result = calendar_planner(payload)
+    return OptimizeResponse(changes=result["changes"], metrics=result["metrics"])
+
+
+@app.post("/explain", response_model=ExplainResponse)
+def explain(payload: RequestPayload):
+    result = qa_agent(payload)
+    return ExplainResponse(explain=result["explain"])
+
 
 @app.post("/ingest/plaid-transform")
 def plaid_transform(plaid_payload: dict = Body(...)) -> dict:
