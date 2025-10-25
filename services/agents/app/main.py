@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Literal, Dict
 from datetime import datetime, timedelta
 import random, string
+from services.agents.adk_pkg.orchestrator import orchestrate as adk_orchestrate
 
 # ----- Types & Schemas -----
 
@@ -209,19 +210,15 @@ def qa_agent(_: RequestPayload) -> Dict[str, object]:
 
 @app.post("/orchestrate/plan", response_model=Plan)
 def orchestrate_plan(payload: RequestPayload):
-    # Route: 'question' returns explanations only; otherwise run planner
-    if payload.intent.name == "question":
-        out = qa_agent(payload)
-    else:
-        out = calendar_planner(payload)
-
+    # Delegate to the ADK seam (which can fall back to native)
+    out = adk_orchestrate(payload)
     return Plan(
         id=_short_id("plan"),
         user_id=str(payload.user.get("id", "usr_123")),
         month=_derive_month(payload),
-        changes=out["changes"],
-        metrics=out["metrics"],
-        explain=out["explain"]
+        changes=out.get("changes", []),
+        metrics=out.get("metrics", {}),
+        explain=out.get("explain", [])
     )
 
 
@@ -241,3 +238,12 @@ def explain(payload: RequestPayload):
 def plaid_transform(plaid_payload: dict = Body(...)) -> dict:
     from .ingest_plaid import plaid_to_agent_payload
     return plaid_to_agent_payload(plaid_payload)
+
+
+@app.get("/adk/status")
+def adk_status():
+    import os
+    return {
+        "use_adk": os.getenv("USE_ADK", "false"),
+        "explain_provider": os.getenv("EXPLAIN_PROVIDER", "native")
+    }
