@@ -22,3 +22,18 @@ pip install -r services/agents/requirements.txt
 
 # Run
 uvicorn services.agents.app.main:app --host 0.0.0.0 --port 8080 --reload
+
+## ADK / OpenRouter (optional)
+To enable LLM-powered explanations (planner remains deterministic):
+
+```bash
+USE_ADK=true \
+EXPLAIN_PROVIDER=openrouter \
+OPENROUTER_API_KEY=sk-*** \
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1 \
+OPENROUTER_HTTP_REFERER=http://localhost:3000 \
+OPENROUTER_APP_TITLE=Alto \
+EXPLAIN_MODEL=google/gemini-2.5-flash \
+EXPLAIN_TEMPERATURE=0.2 \
+uvicorn services.agents.app.main:app --port 8080 --reload
+
